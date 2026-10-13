@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>タスク一覧のまとめ</title>
+  <!-- 自分のフォルダ内の相対パスだけを読む（外部 CDN は読めない） -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="wrap">
+    <header class="head">
+      <h1>タスク一覧のまとめ</h1>
+      <span id="version" class="muted"></span>
+    </header>
+
+    <!-- Doneq の外で直接開かれたときだけ表示する -->
+    <p id="not-embedded" class="notice" hidden>このアプリは Doneq の中で開いてください（サイドナビのアプリ名から開けます）。</p>
+
+    <!-- エラーは画面内に出す（アラートやポップアップは使えない） -->
+    <p id="error" class="error" role="alert" hidden></p>
+
+    <div id="app" hidden>
+      <section class="card">
+        <div class="card-head">
+          <h2>状態ごとの件数</h2>
+          <button id="refresh" type="button" class="btn">再取得</button>
+        </div>
+        <ul id="counts" class="counts"></ul>
+        <p class="overdue">期限切れ（未完了で期日が今日より前）: <strong id="overdue">-</strong> 件</p>
+      </section>
+
+      <section class="card">
+        <h2>タスクを追加</h2>
+        <form id="add-form" class="row">
+          <input id="add-title" type="text" maxlength="200" placeholder="タスク名" required>
+          <button type="submit" class="btn btn-primary">追加</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>メモ</h2>
+        <textarea id="memo" rows="5" placeholder="このアプリ専用のメモ（Doneq に保存されます）"></textarea>
+        <div class="row end">
+          <span id="memo-state" class="muted"></span>
+          <button id="memo-save" type="button" class="btn">保存</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- SDK は必ず classic script で読む（type="module" は不可） -->
+  <script src="/app-sdk/v1.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

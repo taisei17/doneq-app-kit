@@ -1,0 +1,16 @@
+{
+  "name": "doneq-app",
+  "description": "Doneq の外部アプリ（doneq-app.json + DoneqApp SDK）を作る・直す・公開するためのスキル。サンプルテンプレートと開発者ガイド付き",
+  "author": {
+    "name": "Doneq"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/taisei17/doneq-app-kit",
+  "keywords": [
+    "doneq",
+    "doneq-app",
+    "external-app",
+    "skill",
+    "task-management"
+  ]
+}

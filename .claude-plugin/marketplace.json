@@ -1,0 +1,17 @@
+{
+  "name": "doneq",
+  "description": "Doneq の外部アプリ（コミュニティアプリ）制作キットを配布するマーケットプレイス",
+  "owner": {
+    "name": "Doneq"
+  },
+  "plugins": [
+    {
+      "name": "doneq-app",
+      "description": "Doneq の外部アプリ（doneq-app.json + DoneqApp SDK）を作る・直す・公開するためのスキル。サンプルテンプレートと開発者ガイド付き",
+      "source": "./",
+      "author": {
+        "name": "Doneq"
+      }
+    }
+  ]
+}
