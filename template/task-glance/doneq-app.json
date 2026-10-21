@@ -2,7 +2,7 @@
   "manifest_version": 1,
   "id": "task-glance",
   "name": "タスク一覧のまとめ",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "状態ごとのタスク件数と期限切れの件数をひと目で確認し、その場でタスクを1件追加したりメモを残したりできるサンプルアプリです。",
   "entry": "index.html",
   "author": "Doneq contributors",

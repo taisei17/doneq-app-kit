@@ -19,6 +19,7 @@ Doneq の外部アプリは「静的ファイル（HTML/JS/CSS/画像）＋ **`d
 - **1ページ構成。** 別 HTML への遷移・外部リンクはできない（ブラウザ版はアプリが停止、デスクトップ版は遷移がブロックされる）。画面切替は1つの HTML 内で DOM を出し分ける。
 - **読んだデータを外へ送る仕組みを作らない。** ブラウザ版では遷移や WebRTC などの経路を完全には塞げず、権限は利用者が「作者を信頼できる場合だけ」許可するもの。
 - **ヘッダーは自前で作らない。** アプリ名・アイコン・バージョン・更新ボタンは Doneq が画面上部の共通ヘッダーとして描く（`doneq-app.json` の `name` / `icon` / `version` を表示し、「コミュニティアプリ」の印と「更新を確認」を添える）。アプリはヘッダー相当（アプリ名の見出し・版表示・更新ボタン）を作らず、画面は操作や内容から始める。
+- **画面の外枠は作らない。** 表示領域は枠なしで Doneq の画面に続く。画面全体を1枚のカード・枠線・角丸・影・中央寄せの箱で包まず、`body` の背景は塗らない（透明のまま Doneq の背景が見える）。`body` の余白は 0 で左端を共通ヘッダーにそろえる。区切りが要る部品（入力のまとまり・一覧）だけを控えめなカードにする。配色は SDK が付ける `<html data-theme>` を CSS で参照するだけにする（`info().theme` で付け直すのは URL に `theme=` があるときだけ。古い Doneq の白地の中ではライトのまま）。SDK は必ず読む（読まないと下地が付かずダークで読めない）。`html` / `:root` に `color-scheme` を付けない（iframe の地が不透明になる。入力欄など個別の要素ならよい）。
 
 ## Quick Reference
 
@@ -52,6 +53,8 @@ Doneq の外部アプリは「静的ファイル（HTML/JS/CSS/画像）＋ **`d
 | `DoneqApp.chat.send({ webhook_url, text })` | `chat:send` | `undefined`（Google Chat の受信 Webhook `https://chat.googleapis.com/v1/spaces/…/messages?key=…&token=…` へ Doneq 本体が代行送信。`text` は 4000 文字まで、1アプリ 2 秒に 1 回まで） |
 | `DoneqApp.call(method, params)` | メソッド次第 | 生の result（`tasks.list` なら `{ tasks }`） |
 | `DoneqApp.isEmbedded` | - | Doneq 内なら `true`（プロパティ） |
+
+- SDK は読み込み時に、URL の `?theme=` から `<html data-theme="light|dark">`（Doneq のテーマ。`info().theme` と同じ値。アプリが付けていれば上書きしない）と、詳細度 0 の下地（文字色・ダークのリンク色・`body` の余白 0。背景色は付けない）を入れる。CSS は `html[data-theme="dark"]` 等で配色を切り替えればよく、`info()` を待たずに最初の描画から合う。`data-theme` の無いとき（Doneq の外・古い Doneq の白地）の既定はライトの配色にしておく
 
 - タスク項目（フィールド名はこのとおり。`dueDate` `due` `deadline` は存在しない）: `id, title, status, priority, due_date, start_date, created_at, completed_at`。`id` は `task-<数字>` 形式の文字列（例 `task-1791439003609`）で、そのままストレージのキーに使える
 - `status`: `todo` / `queued` / `in_progress` / `awaiting_approval` / `done` / `failed`
@@ -102,7 +105,8 @@ var dueToday = tasks.filter(function (t) { return t.due_date === today && t.stat
 <head>
   <meta charset="utf-8">
   <title>未着手カウンター</title>
-  <style>body { font: 14px system-ui, sans-serif; margin: 24px; } .count { font-size: 20px; margin: 0; }</style>
+  <!-- 外枠は作らない: body の背景は塗らず余白 0（文字色は SDK の下地がテーマに合わせる） -->
+  <style>body { font: 14px system-ui, sans-serif; margin: 0; } .count { font-size: 20px; margin: 0; }</style>
 </head>
 <body>
   <!-- アプリ名・版は Doneq の共通ヘッダーが出すので、見出しは作らず内容から始める -->
@@ -166,6 +170,8 @@ var dueToday = tasks.filter(function (t) { return t.due_date === today && t.stat
 | 依頼を 9 件以上同時に投げる（`Promise.all` 等） | 超えた分が `failed` | `await` で順に呼ぶ |
 | ストレージのキーに空白・`/`・日本語を使う | 保存エラー | 英数字・`_`・`.`・`-` で64文字以内 |
 | 自前でアプリ名の見出し（`<h1>アプリ名</h1>`）や版表示（`v1.0.0`）・更新ボタンを作る | Doneq の共通ヘッダーと二重表示になる | 作らない。名前・アイコン・版は `doneq-app.json` に書けばヘッダーに出る |
+| `info().theme` で無条件に `data-theme` を付ける | 古い Doneq（白地の枠）のダークで白文字が白地に乗る | 付け直すのは `location.search` に `theme=` があるときだけ。無ければ既定（ライト）のまま |
+| 画面全体を中央寄せのカード・枠で包む／`body` に背景色を塗る／`:root` に `color-scheme` を付ける | Doneq の中に別画面の箱がはめ込まれた見た目になる・地の色がずれる | 外枠を作らず `body` は透明・余白 0。配色は SDK が付ける `html[data-theme]` を CSS で参照する |
 
 ## チェックリスト
 
@@ -180,6 +186,7 @@ var dueToday = tasks.filter(function (t) { return t.due_date === today && t.stat
 - [ ] SDK の失敗を `err.code` 付きで画面内に表示している
 - [ ] 1ページ構成で、別 HTML・外部リンクへの遷移が無い
 - [ ] アプリ名の見出し・版表示・更新ボタンを自前で作っていない（共通ヘッダーと二重にならない）
+- [ ] 画面全体を包む枠・カード・中央寄せの箱が無く、`body` の背景を塗らず余白は 0。`html` / `:root` に `color-scheme` が無い
 - [ ] `tasks.update` の `status` は `todo` / `done` だけで、対象も `todo` / `done` のタスクだけ。ストレージのキーは `^[\w.-]{1,64}$`
 - [ ] 拡張子が取り込み対象内、300 ファイル・5MB 以下、symlink 無し
 - [ ] ローカルフォルダから追加して表示・操作を確認した

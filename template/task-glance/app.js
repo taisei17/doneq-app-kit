@@ -125,9 +125,13 @@
     $('app').hidden = false;
 
     try {
-      // 版は Doneq の共通ヘッダーが出すので、ここではテーマだけ合わせる
+      // 版は Doneq の共通ヘッダーが出すので、ここではテーマだけ合わせる。
+      // data-theme は SDK が URL の ?theme= から付ける。info().theme で付け直すのは URL に theme= があるとき（＝背景が透明の
+      // 新しい Doneq）だけ。無いとき（古い Doneq は iframe が白地）にダークを付けると白文字が白地に乗るので、CSS の既定（ライト）のままにする
       var info = await DoneqApp.info();
-      document.documentElement.setAttribute('data-theme', info.theme === 'light' ? 'light' : 'dark');
+      if (info && /[?&]theme=(light|dark)(?=&|#|$)/.test(String((window.location && window.location.search) || ''))) {
+        document.documentElement.setAttribute('data-theme', info.theme === 'light' ? 'light' : 'dark');
+      }
     } catch (err) {
       showError(err);
     }
