@@ -8,12 +8,9 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- アプリ名・アイコン・版・更新ボタンは Doneq が画面上部の共通ヘッダーに出す（doneq-app.json の name / icon / version）。
+       ここでは見出しや版表示を作らず、操作と内容から始める -->
   <main class="wrap">
-    <header class="head">
-      <h1>タスク一覧のまとめ</h1>
-      <span id="version" class="muted"></span>
-    </header>
-
     <!-- Doneq の外で直接開かれたときだけ表示する -->
     <p id="not-embedded" class="notice" hidden>このアプリは Doneq の中で開いてください（サイドナビのアプリ名から開けます）。</p>
 

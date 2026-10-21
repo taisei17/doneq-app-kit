@@ -125,8 +125,8 @@
     $('app').hidden = false;
 
     try {
+      // 版は Doneq の共通ヘッダーが出すので、ここではテーマだけ合わせる
       var info = await DoneqApp.info();
-      $('version').textContent = 'v' + info.version;
       document.documentElement.setAttribute('data-theme', info.theme === 'light' ? 'light' : 'dark');
     } catch (err) {
       showError(err);

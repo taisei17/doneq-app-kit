@@ -18,6 +18,7 @@ Doneq の外部アプリは「静的ファイル（HTML/JS/CSS/画像）＋ **`d
 - **モックデータで代用しない。** Doneq の外で開かれたら「Doneq の中で開いてください」と出すだけにする。
 - **1ページ構成。** 別 HTML への遷移・外部リンクはできない（ブラウザ版はアプリが停止、デスクトップ版は遷移がブロックされる）。画面切替は1つの HTML 内で DOM を出し分ける。
 - **読んだデータを外へ送る仕組みを作らない。** ブラウザ版では遷移や WebRTC などの経路を完全には塞げず、権限は利用者が「作者を信頼できる場合だけ」許可するもの。
+- **ヘッダーは自前で作らない。** アプリ名・アイコン・バージョン・更新ボタンは Doneq が画面上部の共通ヘッダーとして描く（`doneq-app.json` の `name` / `icon` / `version` を表示し、「コミュニティアプリ」の印と「更新を確認」を添える）。アプリはヘッダー相当（アプリ名の見出し・版表示・更新ボタン）を作らず、画面は操作や内容から始める。
 
 ## Quick Reference
 
@@ -33,7 +34,8 @@ Doneq の外部アプリは「静的ファイル（HTML/JS/CSS/画像）＋ **`d
 | `entry` | 任意 | 既定 `index.html`。フォルダ内の相対パス・`.html`・`..` 不可 |
 | `author` | 任意 | 〜60文字 |
 | `homepage` | 任意 | `https://` で始まる |
-| `permissions` | 任意 | 既定 `[]`。`tasks:read` `tasks:write` `storage` のみ |
+| `icon` | 任意 | 既定 `blocks`（汎用）。`report`（書類）も可。共通ヘッダー・サイドナビ・一覧に出る |
+| `permissions` | 任意 | 既定 `[]`。`tasks:read` `tasks:write` `storage` `chat:send` のみ |
 
 ファイル制限: 300 ファイル・5MB、深さはアプリ直下 0 段でフォルダ 6 段まで。ドットファイルと `node_modules` は除外し、それ以外の範囲に symlink があると拒否。`/app-frame/<id>/` は `entry` を返す。取り込む拡張子は `html htm js css json svg png jpg jpeg gif webp ico woff woff2 txt md` のみ（`.mjs` `.ts` や、`LICENSE` のような拡張子の無いファイルは黙って除外されるだけで、追加は拒否されない。GitHub 上に `LICENSE` を置くのは問題ない）。
 
@@ -47,6 +49,7 @@ Doneq の外部アプリは「静的ファイル（HTML/JS/CSS/画像）＋ **`d
 | `DoneqApp.tasks.update({ id, title?, status?, due_date?, priority? })` | `tasks:write` | task（`status` は `todo` / `done` のみ指定可。対象は現在 `todo` / `done` のタスクだけ） |
 | `DoneqApp.storage.get(key)` / `.set(key, value)` / `.remove(key)` | `storage` | 値（無ければ `null`）/ `undefined` / `undefined` |
 | `DoneqApp.ui.toast(message)` | 不要 | `undefined`（先頭にアプリ名が付いて表示。200文字で切られるプレーンテキスト。1秒に1回まで、超えた分は表示されない） |
+| `DoneqApp.chat.send({ webhook_url, text })` | `chat:send` | `undefined`（Google Chat の受信 Webhook `https://chat.googleapis.com/v1/spaces/…/messages?key=…&token=…` へ Doneq 本体が代行送信。`text` は 4000 文字まで、1アプリ 2 秒に 1 回まで） |
 | `DoneqApp.call(method, params)` | メソッド次第 | 生の result（`tasks.list` なら `{ tasks }`） |
 | `DoneqApp.isEmbedded` | - | Doneq 内なら `true`（プロパティ） |
 
@@ -57,6 +60,7 @@ Doneq の外部アプリは「静的ファイル（HTML/JS/CSS/画像）＋ **`d
 - 回数制限: 同時に応答待ちにできる依頼は1アプリ 8 件まで（超えると `failed`）。一覧の全件を `Promise.all` で更新するような並列呼び出しはせず、`await` で順に呼ぶ
 - `tasks.update` は現在の `status` が `todo` / `done` のタスクだけ変更できる（AI 実行中・承認待ち・失敗のタスクは `title` も含めて `invalid_params`）
 - ストレージはアプリ専用・合計 256KB まで。キーは `^[\w.-]{1,64}$`。「更新」では残り、アプリ削除時だけ消える
+- `chat.send` の Webhook URL はコードに書かない。アプリの設定欄で入力してもらい `DoneqApp.storage` に保存して毎回渡す（入力欄は伏せ字表示）。URL 形式違い・空の `text` は `invalid_params`、連投・相手の 4xx/5xx・通信失敗は `failed`
 
 「今日が期限」の判定（ローカル日付で比較する。`toISOString()` は UTC なので使わない）:
 
@@ -73,6 +77,7 @@ var dueToday = tasks.filter(function (t) { return t.due_date === today && t.stat
 | `tasks:read` | タスク一覧を読む | 一覧・集計を表示する |
 | `tasks:write` | タスクを追加・変更する | 追加・完了化・期日変更をする |
 | `storage` | アプリ専用の保存領域 | 設定やメモを次回まで残す |
+| `chat:send` | Google Chat へメッセージを送る（Webhook 宛て） | ボタン操作で Google Chat のスペースへ送る（送信先は Google Chat の受信 Webhook だけ） |
 
 ## 最小テンプレ
 
@@ -97,10 +102,11 @@ var dueToday = tasks.filter(function (t) { return t.due_date === today && t.stat
 <head>
   <meta charset="utf-8">
   <title>未着手カウンター</title>
-  <style>body { font: 14px system-ui, sans-serif; margin: 24px; }</style>
+  <style>body { font: 14px system-ui, sans-serif; margin: 24px; } .count { font-size: 20px; margin: 0; }</style>
 </head>
 <body>
-  <h1>未着手: <span id="count">-</span> 件</h1>
+  <!-- アプリ名・版は Doneq の共通ヘッダーが出すので、見出しは作らず内容から始める -->
+  <p class="count">未着手: <span id="count">-</span> 件</p>
   <p id="msg"></p>
   <script src="/app-sdk/v1.js"></script>
   <script>
@@ -125,10 +131,10 @@ var dueToday = tasks.filter(function (t) { return t.due_date === today && t.stat
 
 ## 作業手順
 
-1. **要件を決める**: 何を表示し、何を操作するか。外部通信が必要な要件は実現できないと先に伝える。
+1. **要件を決める**: 何を表示し、何を操作するか。外部通信が必要な要件は実現できないと先に伝える（例外: Google Chat の受信 Webhook への送信は `chat:send` でできる）。
 2. **権限を最小に決める**: 読むだけなら `tasks:read` のみ。保存が要るときだけ `storage`。
 3. **ファイルを作る**: 最初に `doneq-app.json`、次に上のテンプレの `index.html`。JS が長くなれば `app.js` に分けて `<script src="app.js">` で SDK の後に読む。エラーは画面内に表示する。
-4. **手元で確認する**: Doneq の「アプリを追加」→「URL から追加」→「ローカルフォルダから（開発者向け）」にフォルダの絶対パス → 確認 → 追加 → サイドナビから開く。直したら詳細の「更新を確認」で取り込み直す（ファイルはコピーされるため自動反映されない）。
+4. **手元で確認する**: Doneq の「アプリを追加」→「アプリを追加する」→「ローカルフォルダから追加（開発者向け）」→「フォルダを選ぶ」で作業フォルダを選ぶ（macOS の Finder。絶対パスを直接入力してもよい）→ 確認 → 追加 → サイドナビから開く。直したら画面上部の共通ヘッダー（または詳細）の「更新を確認」で取り込み直す（ファイルはコピーされるため自動反映されない）。
 5. **公開する**: GitHub 公開リポジトリのルート（またはサブフォルダ）に置き、`README.md`・`LICENSE` を添える。URL は `https://github.com/<owner>/<repo>[/tree/<ref>[/<subpath>]]`。変更ごとに `version` を上げる。
 6. **チェックリストを全項目確認して報告する**。
 
@@ -138,7 +144,7 @@ var dueToday = tasks.filter(function (t) { return t.due_date === today && t.stat
 |---|---|---|
 | `doneq-app.json` を作らない | 追加できない | フォルダ直下に必ず作る |
 | `fetch('http://127.0.0.1:4242/api/tasks')` や `/api/task`・`/tasks.json` を叩く | `connect-src 'none'` で全滅 | `DoneqApp.tasks.list()` |
-| XHR / WebSocket で外部 API を呼ぶ | CSP で全て失敗 | 外部通信は不可 |
+| XHR / WebSocket で外部 API を呼ぶ | CSP で全て失敗 | 外部通信は不可（Google Chat へ送るなら `DoneqApp.chat.send`） |
 | API のベース URL・ポート・トークンの「接続設定」欄を作る | 不要な UI。入力しても通信できない | 作らない。SDK は設定なしで動く |
 | 認証を「無し」と推測、またはトークンを探す | 誤った前提の実装 | アプリはトークンを扱わない。親の Doneq が権限を確認して代行する |
 | 期限を `dueDate` / `due` / `deadline` と推測 | 常に `undefined` | `due_date`（`YYYY-MM-DD` または `null`） |
@@ -159,6 +165,7 @@ var dueToday = tasks.filter(function (t) { return t.due_date === today && t.stat
 | `tasks.update` で `status: 'in_progress'` 等にする／AI 実行中のタスクを更新する | エラーになる | `todo` か `done` だけ（AI 実行の状態にはできない）。更新対象は `status` が `todo` / `done` のタスクに絞る |
 | 依頼を 9 件以上同時に投げる（`Promise.all` 等） | 超えた分が `failed` | `await` で順に呼ぶ |
 | ストレージのキーに空白・`/`・日本語を使う | 保存エラー | 英数字・`_`・`.`・`-` で64文字以内 |
+| 自前でアプリ名の見出し（`<h1>アプリ名</h1>`）や版表示（`v1.0.0`）・更新ボタンを作る | Doneq の共通ヘッダーと二重表示になる | 作らない。名前・アイコン・版は `doneq-app.json` に書けばヘッダーに出る |
 
 ## チェックリスト
 
@@ -172,6 +179,7 @@ var dueToday = tasks.filter(function (t) { return t.due_date === today && t.stat
 - [ ] モックデータへのフォールバックが無い。`isEmbedded` が偽なら「Doneq の中で開いてください」
 - [ ] SDK の失敗を `err.code` 付きで画面内に表示している
 - [ ] 1ページ構成で、別 HTML・外部リンクへの遷移が無い
+- [ ] アプリ名の見出し・版表示・更新ボタンを自前で作っていない（共通ヘッダーと二重にならない）
 - [ ] `tasks.update` の `status` は `todo` / `done` だけで、対象も `todo` / `done` のタスクだけ。ストレージのキーは `^[\w.-]{1,64}$`
 - [ ] 拡張子が取り込み対象内、300 ファイル・5MB 以下、symlink 無し
 - [ ] ローカルフォルダから追加して表示・操作を確認した
